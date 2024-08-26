@@ -274,6 +274,14 @@ local_path_override(
     path = "third_party/rules_swift_layering_check_external_test",
 )
 
+# Snap's Bazel builds carry a 4-segment version string, which upstream
+# bazel_features' parser rejects.
+single_version_override(
+    module_name = "bazel_features",
+    patches = ["//:bazel_features.patch"],
+    version = "1.51.0",
+)
+
 # TODO: In stardoc 0.7.1+, the `load` statements added to the docs are relative to the `alias` targets which is incorrect.
 # To keep the docs without confusing load statements we patch a partial revert of: https://github.com/bazelbuild/stardoc/pull/216
 # https://github.com/bazelbuild/stardoc/issues/297
