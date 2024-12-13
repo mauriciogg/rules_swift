@@ -82,7 +82,7 @@ def _write_extended_module_map(
     actions.run(
         arguments = [args],
         executable = module_map_extender,
-        inputs = [original_module_map],
+        inputs = [original_module_map, swift_generated_header],
         mnemonic = "ExtendMixedLanguageModuleMap",
         outputs = [output_module_map],
     )
