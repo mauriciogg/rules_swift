@@ -366,8 +366,24 @@ package(default_visibility = ["//visibility:public"])
         ]),
     )
 
+    # SNAP internal: expose an optional -Swift.h rewriter tool via repo ENV as a
+    # hacky but much simpler alternative to defining custom Swift toolchains.
+    # Upstream moved `xcode_swift_toolchain` out of this generated repo and into
+    # a static `//swift/toolchains:BUILD` (bazelbuild/rules_swift#1845), so the
+    # label can no longer be interpolated into a generated BUILD file; emit it as
+    # a constant that the static BUILD loads instead. The value is written
+    # verbatim, so callers must quote it themselves, and an unset variable must
+    # yield `None` because the toolchain attribute gates the whole feature on
+    # truthiness.
+    repository_ctx.file(
+        "generated_header_rewriter.bzl",
+        "GENERATED_HEADER_REWRITER = {}\n".format(
+            repository_ctx.os.environ.get("GeneratedHeaderRewriter") or "None",
+        ),
+    )
+
 swift_autoconfiguration = repository_rule(
-    environ = ["CC", "PATH", "ProgramData", "Path"],
+    environ = ["CC", "PATH", "ProgramData", "Path", "GeneratedHeaderRewriter"],
     implementation = _swift_autoconfiguration_impl,
     local = True,
 )

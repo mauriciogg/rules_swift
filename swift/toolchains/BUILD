@@ -6,6 +6,10 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@rules_cc//cc/toolchains:feature.bzl", "cc_feature")
 load("@rules_swift//swift/toolchains:xcode_swift_toolchain.bzl", "xcode_swift_toolchain")
 load(
+    "@rules_swift_local_config//:generated_header_rewriter.bzl",
+    "GENERATED_HEADER_REWRITER",
+)
+load(
     "//swift/internal:feature_names.bzl",
     "SWIFT_FEATURE_MODULE_MAP_NO_PRIVATE_HEADERS",
 )
@@ -78,6 +82,8 @@ xcode_swift_toolchain(
     name = "xcode-toolchain",
     cross_import_overlays = ["@system_sdk//:all_cross_import_overlays"],
     features = _XCODE_FEATURE_VALUES,
+    # SNAP internal: set via `--repo_env=GeneratedHeaderRewriter=...`.
+    generated_header_rewriter = GENERATED_HEADER_REWRITER,
     implicit_system_modules = "@system_sdk//:implicit_modules",
     system_modules = "@system_sdk//:all_modules",
     tags = ["manual"],
