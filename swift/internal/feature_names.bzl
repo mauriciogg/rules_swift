@@ -442,3 +442,7 @@ SWIFT_FEATURE_ENABLE_EMBEDDED = "swift.enable_embedded"
 # Before swift 6.3 using macros lead to absolute paths in swiftmodule files
 # even with -prefix-serialized-debugging-options
 SWIFT_FEATURE__SUPPORTS_HERMETIC_SWIFTMODULE = "swift._supports_hermetic_swiftmodule"
+
+# A feature that exposes all dependencies as public, including
+# the targets passed to `private_deps` attribute.
+SWIFT_FEATURE_EXPOSE_PRIVATE_DEPS_AS_PUBLIC = "swift.expose_private_deps_as_public"
