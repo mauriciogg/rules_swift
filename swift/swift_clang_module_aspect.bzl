@@ -408,6 +408,14 @@ def _handle_module(
             elif SwiftInfo in dep:
                 additional_swift_infos.append(dep[SwiftInfo])
 
+    # SNAP SPECIFIC LOGIC
+    # We pass "." to includes by passing "-I." as copt 
+    # (https://grep.sc-corp.net/view/Snapchat/mobile/phantom/Tools/build_system/bazel_macros/rules_snap_ios/ios_library.bzl).
+    # SwiftPrecompileModule action doesn't get current working directory like SwiftCompile action does, so we add it manually.
+    compilation_contexts_to_merge_for_compilation.append(
+            cc_common.create_compilation_context(includes = depset(["."])),
+    )
+
     compilation_context_to_compile = (
         compilation_context_for_explicit_module_compilation(
             compilation_contexts = (
@@ -429,18 +437,24 @@ def _handle_module(
     for define in getattr(attr, "local_defines", []):
         local_defines.append("-D" + define)
 
-    compile_result = precompile_clang_module(
-        actions = aspect_ctx.actions,
-        cc_compilation_context = compilation_context_to_compile,
-        feature_configuration = feature_configuration,
-        module_map_file = module_map_file,
-        module_name = module_name,
-        swift_infos = swift_infos,
-        toolchains = toolchains,
-        target_name = target.label.name,
-        toolchain_type = toolchain_type,
-        user_compile_flags = local_defines,
-    )
+    # TODO : Find ways to make this work for mapbox (ycho)
+    if target.label.name in ("apple-lib-objc") or target.label.repo_name == ("skia"):
+        # either depends on c++ or it's empty target with no source file
+        compile_result = None
+    else:
+        compile_result = precompile_clang_module(
+            actions = aspect_ctx.actions,
+            cc_compilation_context = compilation_context_to_compile,
+            feature_configuration = feature_configuration,
+            module_map_file = module_map_file,
+            module_name = module_name,
+            # needs to have sdks in the transitive_modules for objc
+            swift_infos = swift_infos,
+            toolchains = toolchains,
+            target_name = target.label.name,
+            toolchain_type = toolchain_type,
+            user_compile_flags = local_defines,
+        )
     precompiled_module = compile_result.clang_module.precompiled_module if compile_result else None
     pcm_indexstore = compile_result.indexstore_directory if compile_result else None
 
@@ -773,6 +787,10 @@ def _swift_clang_module_aspect_impl(target, aspect_ctx, toolchain_type):
         # nothing (not even transitive dependencies).
         if interop_info.suppressed:
             return providers
+
+        # Add system_pcms passed via `swift_interop_hint` to swift_infos 
+        for system_pcm in interop_info.system_pcms:
+            swift_infos.append(system_pcm[SwiftInfo])
 
         exclude_headers = interop_info.exclude_headers
         module_map_file = interop_info.module_map

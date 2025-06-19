@@ -78,5 +78,9 @@ supplied as negations in the `features` attribute. This allows the rule
 implementation to supply an additional set of fixed features that should always
 be disabled when the Swift build rules process that target.
 """,
+        "system_pcms": """\
+A list of precompiled clang modules with `SwiftInfo` providers for system modules.
+This is used to pass `system_pcm` dependencies originating from `swift_interop_hint`.
+""",
     },
 )
