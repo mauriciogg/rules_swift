@@ -462,6 +462,8 @@ SwiftRunner::SwiftRunner(const std::vector<std::string>& args,
       is_dump_ast_(false),
       is_verify_(false),
       file_prefix_pwd_is_dot_(false),
+      module_file_home_is_cwd_(false),
+      working_directory_is_dot_(false),
       hermetic_pcm_(false),
       verbose_(false) {
   EnsureDeveloperDirSymlinkFromEnv();
@@ -543,7 +545,14 @@ int SwiftRunner::Run(std::ostream* stderr_stream, bool stdout_to_stderr) {
 
     if (file_prefix_pwd_is_dot_) {
       ii_args.push_back("-file-prefix-map");
-      ii_args.push_back(std::filesystem::current_path().string() + "=.");
+      std::string mapped_path;
+      if (module_file_home_is_cwd_ && working_directory_is_dot_) {
+        // TODO : this is a workaround for swift indexstore unit output file hash mismatch issue.
+        mapped_path = "=././.";
+      } else {
+        mapped_path = "=.";
+      }
+      ii_args.push_back(std::filesystem::current_path().string() + mapped_path);
     }
 
     for (it = outputs.begin(); it != outputs.end(); it++) {
@@ -797,6 +806,20 @@ std::vector<std::string> SwiftRunner::ParseArguments(Iterator itr) {
       out_args.push_back(*it);
     } else if (arg == "-v") {
       verbose_ = true;
+    } else if (arg == "-fmodule-file-home-is-cwd") {
+      module_file_home_is_cwd_ = true;
+    } else if (arg == "-working-directory") {
+      ++it;
+      std::string next = *it;
+      out_args.push_back(next);
+      if (next == "-Xcc") {
+        ++it;
+        next = *it;
+        out_args.push_back(next);
+        if (next == ".") {
+          working_directory_is_dot_ = true;
+        }
+      }
     }
   }
   return out_args;
