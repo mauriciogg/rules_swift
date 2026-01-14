@@ -36,6 +36,7 @@ load(
 load(
     "//swift/internal:feature_names.bzl",
     "SWIFT_FEATURE_ADD_DEFAULT_PRECOMPILED_MODULES",
+    "SWIFT_FEATURE_ALLOW_SNAP_OBJC_UMBRELLA_IMPORT",
     "SWIFT_FEATURE_CACHEABLE_SWIFTMODULES",
     "SWIFT_FEATURE_CODEVIEW_DEBUG_INFO",
     "SWIFT_FEATURE_COVERAGE",
@@ -1444,6 +1445,26 @@ def compile_action_configs(
                 ],
             ),
         )
+
+    action_configs.append(
+        ActionConfigInfo(
+            actions = [
+                SWIFT_ACTION_COMPILE,
+                SWIFT_ACTION_COMPILE_MODULE_INTERFACE,
+                SWIFT_ACTION_DERIVE_FILES,
+                SWIFT_ACTION_DUMP_AST,
+                SWIFT_ACTION_PRECOMPILE_C_MODULE,
+                SWIFT_ACTION_SYMBOL_GRAPH_EXTRACT,
+                SWIFT_ACTION_SYNTHESIZE_INTERFACE,
+            ],
+            configurators = [
+                add_arg("-Xcc", "-DSNAP_IMPORT_OBJC_UMBRELLA_HEADER=1"),
+            ],
+            features = [
+                SWIFT_FEATURE_ALLOW_SNAP_OBJC_UMBRELLA_IMPORT,
+            ],
+        ),
+    )
 
     # The frontend job that typechecks the `.swiftinterface` produced in library
     # evolution mode cannot succeed in a Bazel build that uses explicit modules
