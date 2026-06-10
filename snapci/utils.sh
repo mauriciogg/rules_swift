@@ -33,7 +33,9 @@ function deploy() {
     gsutil cp "${archive_path}" "$GCS_URL"
 
     echo "Getting shasum of the binary"
-    sha256=$(shasum -a 256 "${archive_path}" | awk '{print $1}')
+    # archive_override expects a Subresource Integrity (SRI) value
+    # (sha256-<base64>) rather than the hex digest http_archive used.
+    integrity="sha256-$(openssl dgst -sha256 -binary "${archive_path}" | openssl base64 -A)"
 
     echo "Posting PR Comment..."
     if [ -z "$CI_PULL_REQUEST" ]; then
@@ -43,10 +45,10 @@ function deploy() {
     snapci gh prs comments create <<END_GITHUB_COMMENT
 Swift Rules ${dev_suffix} published:
 \`\`\`
-http_archive(
-    name = "build_bazel_rules_swift",
-    sha256 = "${sha256}",
-    url = "${HTTP_URL}",
+archive_override(
+    module_name = "rules_swift",
+    integrity = "${integrity}",
+    urls = ["${HTTP_URL}"],
 )
 \`\`\`
 END_GITHUB_COMMENT
