@@ -67,69 +67,95 @@ config_setting(
 
 Then add `":<config_setting_name>": ["//system_sdks/<new_version>:system_sdks"]` to the `system_sdks` select and the same pattern for `testonly_system_sdks`.
 
-## Step 7 — Validate with `swiftc -scan-dependencies`
+## Step 7 — Validate with `swiftc -scan-dependencies` on ALL platforms
 
-Create a temporary Swift file that imports every module defined in the new BUILD files:
+**Validate every platform directory that exists under the new version** (e.g. `iPhoneSimulator/arm64`, `iPhoneOS/arm64`, `MacOSX/arm64`, `WatchOS`, `WatchSimulator/arm64`), not just iPhoneSimulator. And validate **dependency edges**, not just module names — a module can exist in the BUILD file but be missing a dep that is new in this SDK. With implicit modules disabled, a missing edge fails at build time with:
+
 ```
-grep 'module_name = ' system_sdks/<new_version>/iPhoneSimulator/arm64/BUILD.bazel \
-  | sed 's/.*module_name = "\(.*\)".*/import \1/' \
-  | grep -v '^import _Builtin_' \
-  | grep -v '^import _AvailabilityInternal' \
-  | grep -v '^import _SwiftConcurrencyShims' \
-  | grep -v '^import SwiftShims' \
-  | grep -v '^import ptrauth' \
-  | grep -v '^import ptrcheck' \
-  | grep -v '^import sys_types' \
-  | grep -v '^import os_object' \
-  | grep -v '^import os_workgroup' \
-  | sort -u > /tmp/check_sdks.swift
+error: module '<X>' is needed but has not been provided, and implicit use of module files is disabled
 ```
 
-Run the scanner against the iPhoneSimulator SDK (adjust iOS version as needed):
+(Real example: in Xcode 27.0 beta 27A5228h, `math.h` gained an include of the toolchain's `float.h` under `__need_infinity_nan`, adding a new `_DarwinFoundation1` → `_Builtin_float` edge that the copied BUILD didn't declare.)
+
+For each platform, create a Swift file importing every module defined in that platform's BUILD.bazel:
+```
+gen_imports() {
+  grep 'module_name = ' "$1" \
+    | sed 's/.*module_name = "\(.*\)".*/import \1/' \
+    | grep -v -e '^import _Builtin_' -e '^import _AvailabilityInternal' -e '^import _SwiftConcurrencyShims' \
+              -e '^import SwiftShims' -e '^import ptrauth' -e '^import ptrcheck' -e '^import sys_types' \
+              -e '^import os_object' -e '^import os_workgroup' \
+              -e '^import XCTest$' -e '^import XCUIAutomation$' -e '^import StoreKitTest$' \
+    | sort -u > "$2"
+}
+```
+
+Run the scanner once per platform with the matching SDK and target triple (they can run in parallel with `&` + `wait`):
+
+| Platform dir | SDK | `-target` |
+|---|---|---|
+| `iPhoneSimulator/arm64` | `iPhoneSimulator.sdk` | `arm64-apple-ios18.0-simulator` |
+| `iPhoneOS/arm64` | `iPhoneOS.sdk` | `arm64-apple-ios18.0` |
+| `MacOSX/arm64` | `MacOSX.sdk` | `arm64-apple-macos15.0` |
+| `WatchOS` | `WatchOS.sdk` | `arm64_32-apple-watchos11.0` |
+| `WatchSimulator/arm64` | `WatchSimulator.sdk` | `arm64-apple-watchos11.0-simulator` |
+
 ```
 swiftc -scan-dependencies \
-  -sdk /Applications/<Xcode_app>/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk \
-  -target arm64-apple-ios18.0-simulator \
-  /tmp/check_sdks.swift \
-  > /tmp/scan_output.json 2>/tmp/scan_stderr.txt
+  -sdk /Applications/<Xcode_app>/Contents/Developer/Platforms/<Platform>.platform/Developer/SDKs/<Platform>.sdk \
+  -target <target_triple> \
+  <imports_platform>.swift > scan_<platform>.json 2> err_<platform>.txt
 ```
 
-Then parse the output to find any clang modules discovered by the scanner that are **not** in the BUILD file:
+A non-empty stderr means an unresolvable import (usually a testonly framework living outside the SDK, like XCTest/StoreKitTest) — exclude it from the import file and rescan.
+
+Then compare the scanner output against each BUILD file — both **missing modules** (name level) and **missing edges** (each clang module's `directDependencies` must all appear in that target's `deps`). The scan JSON's `modules` array alternates identifier/detail entries:
+
 ```python
-import json, subprocess
+import json, re
 
-with open('/tmp/scan_output.json') as f:
-    data = json.load(f)
+def load_scan(path):
+    mods = json.load(open(path))['modules']
+    deps, mmaps = {}, {}
+    for i in range(0, len(mods), 2):
+        ident, detail = mods[i], mods[i+1]
+        if 'clang' in ident:
+            deps[ident['clang']] = [d['clang'] for d in detail.get('directDependencies', []) if 'clang' in d]
+            mm = [s for s in detail.get('sourceFiles', []) if s.endswith('.modulemap')]
+            mmaps[ident['clang']] = mm[0] if mm else None
+    return deps, mmaps
 
-scan_clang = {list(m.values())[0] for m in data['modules'] if 'clang' in m}
+scan_deps, scan_mmaps = load_scan('scan_<platform>.json')
+src = open('system_sdks/<new_version>/<platform>/BUILD.bazel').read()
+build_deps = {m.group(1): set(re.findall(r'":([^"]+)"', m.group(0)))
+              for m in re.finditer(r'swift_c_module\(\s*name = "([^"]+)",.*?\n\)', src, re.S)}
 
-result = subprocess.run(
-    ["grep", "module_name = ", "system_sdks/<new_version>/iPhoneSimulator/arm64/BUILD.bazel"],
-    capture_output=True, text=True
-)
-build_modules = {line.strip().split('"')[1] for line in result.stdout.splitlines()}
-
-missing = scan_clang - build_modules
-print("Missing from BUILD:", sorted(missing))
+missing_modules = set(scan_deps) - set(build_deps)
+missing_edges = {m: sorted(set(d) - build_deps[m]) for m, d in scan_deps.items()
+                 if m in build_deps and set(d) - build_deps[m]}
+print("Missing modules:", sorted(missing_modules))
+print("Missing edges:", missing_edges)
 ```
 
-## Step 8 — Add any missing modules
+## Step 8 — Fix missing edges and missing modules
 
-For each module found in Step 6 that is missing from the BUILD files:
+For each platform, until the Step 7 comparison is completely clean:
 
-1. Find which `module.modulemap` defines it:
-   ```
-   find /Applications/<Xcode_app>/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk \
-     -name "*.modulemap" | xargs grep -l "<ModuleName>"
-   ```
+1. **Missing edges**: add each scanner-reported dep to the existing `swift_c_module` target's `deps` list (add a `deps` attribute if the target has none). Add *all* missing direct edges from the scanner, not just ones that fail today — an edge satisfied transitively can break when the SDK's dep graph shifts again.
 
-2. Check whether it's a new module (not in the previous version's SDK) or just missing from the copy.
+2. **Missing modules**: add a `swift_c_module` target with `deps` taken directly from the scanner's `directDependencies` and `system_module_map` from the scanner's modulemap path, rewritten to the platform's prefix convention:
+   - `iPhoneSimulator/*`: `__BAZEL_XCODE_SDKROOT__/...`
+   - `iPhoneOS/*`: `__BAZEL_XCODE_DEVELOPER_DIR__/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/...`
+   - `MacOSX/*`: `__BAZEL_XCODE_DEVELOPER_DIR__/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/...`
+   - `WatchOS` / `WatchSimulator/*`: `__BAZEL_XCODE_SDKROOT__/...`
 
-3. Add a `swift_c_module` target to all relevant per-platform BUILD.bazel files using the same `module.modulemap` path as the framework it belongs to. Use `:FrameworkName` as a dep if it shares the same module map.
+   Register each new target in the `all_generated_targets` `swift_library_group` at the bottom of the file.
 
-4. Add the new target to the `all_generated_targets` `swift_library_group` at the bottom of each BUILD.bazel file.
+3. **Re-run the Step 7 comparison** and repeat — adding new module targets typically surfaces a second round of missing edges, because edges pointing at not-yet-existing targets couldn't be added in the first pass (e.g. `ARKit` → `ARKitCore`).
 
-5. Repeat for all platforms that include the parent framework (typically iPhoneOS/arm64, iPhoneSimulator/arm64, iPhoneSimulator/x86_64, MacOSX/arm64, MacOSX/x86_64; WatchOS only if the framework exists there).
+4. As a final sanity check, verify the resulting dep graph has no cycles (DFS over `build_deps`).
+
+Note: platforms differ — WatchOS/WatchSimulator BUILD files are much smaller and can be missing common frameworks (CoreAudio, CoreMedia, CoreMotion, XPC) that became reachable in a new SDK, and iPhoneOS/MacOSX can have SubFramework modules (e.g. `ARKitCore` under `System/Library/SubFrameworks/`) that don't exist on iPhoneSimulator.
 
 ## Step 9 — Commit and push
 
@@ -144,5 +170,5 @@ git push
 - The `iPhoneOS/arm64` BUILD.bazel uses `__BAZEL_XCODE_DEVELOPER_DIR__/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/...` paths instead of `__BAZEL_XCODE_SDKROOT__/...`. This is expected and matches the pattern from prior versions.
 - MacOSX BUILD files also use `__BAZEL_XCODE_DEVELOPER_DIR__/Platforms/MacOSX.platform/...` paths.
 - WatchOS/WatchSimulator BUILD files use `__BAZEL_XCODE_DEVELOPER_DIR__/Platforms/WatchOS.platform/...` paths for Darwin/DarwinFoundation entries.
-- `XCTest` and `XCUIAutomation` are testonly modules — they will fail in the scan but are intentionally handled separately in `testonly_system_sdks`.
-- The `_Builtin_*`, `_AvailabilityInternal`, `SwiftShims`, `_SwiftConcurrencyShims`, `ptrauth`, `ptrcheck`, `sys_types`, `os_object`, and `os_workgroup` modules are low-level clang/system modules; exclude them from the import file used in Step 6.
+- `XCTest`, `XCUIAutomation`, and `StoreKitTest` are testonly modules living outside the SDK — they will fail in the scan but are intentionally handled separately in `testonly_system_sdks`. Exclude them from the import files.
+- The `_Builtin_*`, `_AvailabilityInternal`, `SwiftShims`, `_SwiftConcurrencyShims`, `ptrauth`, `ptrcheck`, `sys_types`, `os_object`, and `os_workgroup` modules are low-level clang/system modules; exclude them from the import files used in Step 7. They still show up as scanner deps of other modules, so their edges get validated regardless.
