@@ -27,9 +27,9 @@ config_setting(
 
 # Xcode 27.0
 config_setting(
-    name = "xcode_27_0_0_27A5228h",
+    name = "xcode_27_0_0_27A5218g",
     flag_values = {
-        "@bazel_tools//tools/osx:xcode_version_flag_exact": "27.0.0.27A5228h",
+        "@bazel_tools//tools/osx:xcode_version_flag_exact": "27.0.0.27A5218g",
     },
 )
 
@@ -39,7 +39,7 @@ swift_library_group(
         ":xcode_16_3_0_16E140": ["//system_sdks/16.3.0.16E140:system_sdks"],
         ":xcode_26_0_1_17A400": ["//system_sdks/26.0.1.17A400:system_sdks"],
         ":xcode_26_5_0_17F42": ["//system_sdks/26.5.0.17F42:system_sdks"],
-        ":xcode_27_0_0_27A5228h": ["//system_sdks/27.0.0.27A5228h:system_sdks"],
+        ":xcode_27_0_0_27A5218g": ["//system_sdks/27.0.0.27A5218g:system_sdks"],
         "//conditions:default": [],
     }),
 )
@@ -51,7 +51,7 @@ swift_library_group(
         ":xcode_16_3_0_16E140": ["//system_sdks/16.3.0.16E140:testonly_system_sdks"],
         ":xcode_26_0_1_17A400": ["//system_sdks/26.0.1.17A400:testonly_system_sdks"],
         ":xcode_26_5_0_17F42": ["//system_sdks/26.5.0.17F42:testonly_system_sdks"],
-        ":xcode_27_0_0_27A5228h": ["//system_sdks/27.0.0.27A5228h:testonly_system_sdks"],
+        ":xcode_27_0_0_27A5218g": ["//system_sdks/27.0.0.27A5218g:testonly_system_sdks"],
         "//conditions:default": [],
     }),
 )
