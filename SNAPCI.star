@@ -6,7 +6,13 @@ MAC_EXEC_REQUIREMENTS = {
     "os": "macos",
     "arch": "arm64",
     "vm_image": "snap-macos",
-    "xcode_version": "16.0_16A242d"
+    # Newest release this VM image offers (`snapci config validate` lists them).
+    # rules_swift 4.x precompiles the SDK's explicit modules through the upstream
+    # `system_sdk` extension, and Xcode 16.0's SDK cannot build them: its
+    # prebuilt Swift modules are x86_64-only, so SwiftCompileModuleInterface
+    # fails with "module 'Swift' was created for incompatible target
+    # x86_64-apple-macosx15.0".
+    "xcode_version": "26.0_17A400"
 }
 
 on_pr(
