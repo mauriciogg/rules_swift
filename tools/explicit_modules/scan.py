@@ -1005,7 +1005,16 @@ def _main() -> None:
     for sdk in sdk_names:
         if all_modules_by_sdk.get(sdk):
             buf.write(f'        ":{sdk}_sdk": ":{sdk}_all_modules",\n')
-    buf.write('        "@platforms//os:none": ":_empty_all_modules",\n')
+
+    # SNAP: a real default, not `@platforms//os:none`. The scan only emits
+    # sections for the SDKs it found (in practice MacOSX/iPhoneOS/
+    # iPhoneSimulator), so a configuration targeting an unscanned SDK -- a
+    # watchOS app extension split, say -- matches no branch, and `os:none`
+    # never matches anything real either, so the alias fails analysis with
+    # 'configurable attribute "actual" ... doesn't match this configuration'.
+    # Falling back to the empty group gives those configurations no explicit
+    # system modules, which is the pre-4.x status quo.
+    buf.write('        "//conditions:default": ":_empty_all_modules",\n')
     buf.write("    }),\n")
     buf.write(")\n")
 
@@ -1016,7 +1025,9 @@ def _main() -> None:
     for sdk in sdk_names:
         if all_modules_by_sdk.get(sdk):
             buf.write(f'        ":{sdk}_sdk": ":{sdk}_implicit_modules",\n')
-    buf.write('        "@platforms//os:none": ":_empty_implicit_modules",\n')
+
+    # SNAP: see the note on `all_modules` above.
+    buf.write('        "//conditions:default": ":_empty_implicit_modules",\n')
     buf.write("    }),\n")
     buf.write(")\n")
 
@@ -1027,7 +1038,9 @@ def _main() -> None:
     for sdk in sdk_names:
         if all_modules_by_sdk.get(sdk):
             buf.write(f'        ":{sdk}_sdk": ":{sdk}_all_cross_import_overlays",\n')
-    buf.write('        "@platforms//os:none": ":_empty_cross_import_overlays",\n')
+
+    # SNAP: see the note on `all_modules` above.
+    buf.write('        "//conditions:default": ":_empty_cross_import_overlays",\n')
     buf.write("    }),\n")
     buf.write(")\n")
 
