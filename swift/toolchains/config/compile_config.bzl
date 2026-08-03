@@ -791,9 +791,11 @@ def compile_action_configs(
         # When using C modules, disable the implicit search for module map files
         # because all of them, including system dependencies, will be provided
         # explicitly.
+        # COMPILE_MODULE_INTERFACE is deliberately absent: it gets textual
+        # module maps instead of pcms (see above), so it has to be allowed to
+        # build those modules implicitly.
         ActionConfigInfo(
             actions = all_compile_action_names() + [
-                SWIFT_ACTION_COMPILE_MODULE_INTERFACE,
                 SWIFT_ACTION_DUMP_AST,
                 SWIFT_ACTION_PRECOMPILE_C_MODULE,
                 SWIFT_ACTION_SYMBOL_GRAPH_EXTRACT,
@@ -805,23 +807,13 @@ def compile_action_configs(
             ],
             features = [SWIFT_FEATURE_USE_C_MODULES],
         ),
-        ActionConfigInfo(
-            actions = all_compile_action_names() + [
-                SWIFT_ACTION_DUMP_AST,
-                SWIFT_ACTION_PRECOMPILE_C_MODULE,
-                SWIFT_ACTION_SYMBOL_GRAPH_EXTRACT,
-                SWIFT_ACTION_SYNTHESIZE_INTERFACE,
-            ],
-            configurators = [
-                add_arg("-Xfrontend", "-disable-building-interface"),  # Make sure Swift doesn't implicitly translate swiftinterface -> swiftmodule
-            ],
-            features = [SWIFT_FEATURE_USE_C_MODULES],
-        ),
-        ActionConfigInfo(
-            actions = [SWIFT_ACTION_COMPILE_MODULE_INTERFACE],
-            configurators = [add_arg("-disable-building-interface")],
-            features = [SWIFT_FEATURE_USE_C_MODULES],
-        ),
+        # NOT -disable-building-interface: upstream pairs explicit C modules
+        # with a precompiled system *Swift* module layer (its @system_sdk
+        # extension). This fork keeps the static //system_sdks layer instead,
+        # which supplies clang pcms only, so SDK Swift frameworks outside the
+        # prebuilt module cache (AppIntents et al.) still need the compiler to
+        # translate their .swiftinterface on demand -- the same behaviour the
+        # 3.x line had with explicit C modules enabled.
         ActionConfigInfo(
             actions = all_compile_action_names() + [
                 SWIFT_ACTION_DUMP_AST,
@@ -1082,10 +1074,7 @@ def compile_action_configs(
         # These actions do not support reading system modules from the
         # explicit module map json file
         ActionConfigInfo(
-            actions = [
-                SWIFT_ACTION_COMPILE_MODULE_INTERFACE,
-                SWIFT_ACTION_PRECOMPILE_C_MODULE,
-            ],
+            actions = [SWIFT_ACTION_PRECOMPILE_C_MODULE],
             configurators = [
                 lambda prerequisites, args: _dependencies_clang_modules_configurator(
                     prerequisites,
@@ -1093,6 +1082,25 @@ def compile_action_configs(
                     ignore_system = False,
                 ),
             ],
+            features = [SWIFT_FEATURE_USE_C_MODULES],
+        ),
+        # Interface compiles are given no precompiled dependency modules at
+        # all. swift-frontend honours the deployment target recorded in the
+        # .swiftinterface it translates, which for a vendored framework is
+        # usually older than ours (SpotifyLogin: ios13.0 vs ios15.0), and clang
+        # refuses a pcm whose target does not match the translation unit
+        # exactly -- open-source clang rejects what Apple's tolerates, so this
+        # only breaks cross builds. This action is not covered by
+        # -fno-implicit-modules (all_compile_action_names is just compile and
+        # derive-files), so it resolves what it needs implicitly at its own
+        # target. Note the modules cannot simply be filtered by is_system:
+        # this fork delivers the SDK layer through target deps rather than the
+        # toolchain, so the ordinary compile actions need it unfiltered. The
+        # textual module maps are still passed, exactly as they are when
+        # explicit modules are disabled, so the modules can be found at all.
+        ActionConfigInfo(
+            actions = [SWIFT_ACTION_COMPILE_MODULE_INTERFACE],
+            configurators = [_dependencies_clang_modulemaps_configurator],
             features = [SWIFT_FEATURE_USE_C_MODULES],
         ),
         ActionConfigInfo(
