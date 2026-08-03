@@ -1,5 +1,17 @@
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("//swift:swift.bzl", "swift_library_group")
+
 package(default_visibility = ["//visibility:public"])
+
+# Pins the min OS that this layer's pcms are built at. clang validates a pcm
+# against the SDK version rather than the consuming TU's deployment target, so
+# building them at the app's deployment target makes them unusable by any TU on
+# a different one (e.g. compiling a vendored .swiftinterface that records its
+# own, older deployment target). Empty keeps the previous behaviour.
+string_flag(
+    name = "sdk_version",
+    build_setting_default = "",
+)
 
 # Xcode 16.3
 config_setting(

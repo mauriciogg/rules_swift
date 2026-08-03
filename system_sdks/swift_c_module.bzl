@@ -22,6 +22,7 @@ load("//swift/internal:compiling.bzl", "precompile_clang_module")
 load("//swift/internal:feature_names.bzl", "SWIFT_FEATURE_SYSTEM_MODULE")
 load("//swift/internal:utils.bzl", "merge_runfiles")
 load("//swift/internal:toolchain_utils.bzl", "SWIFT_TOOLCHAIN_TYPE")
+load(":sdk_min_os_transition.bzl", "sdk_min_os_transition")
 
 def _swift_c_module_impl(ctx):
     if (
@@ -190,6 +191,7 @@ referenced by a module map that is imported into Swift must have only C features
 visible, often by using preprocessor conditions like `#if __cplusplus` to hide
 any C++ declarations.
 """,
+    cfg = sdk_min_os_transition,
     implementation = _swift_c_module_impl,
     toolchains = swift_common.use_toolchain(),
     fragments = ["cpp"],
