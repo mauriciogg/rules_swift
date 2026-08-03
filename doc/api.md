@@ -37,7 +37,7 @@ On this page:
 <pre>
 create_swift_interop_info(*, <a href="#create_swift_interop_info-compilation_context">compilation_context</a>, <a href="#create_swift_interop_info-direct_swift_infos">direct_swift_infos</a>, <a href="#create_swift_interop_info-exclude_headers">exclude_headers</a>, <a href="#create_swift_interop_info-module_map">module_map</a>,
                           <a href="#create_swift_interop_info-module_name">module_name</a>, <a href="#create_swift_interop_info-requested_features">requested_features</a>, <a href="#create_swift_interop_info-suppressed">suppressed</a>, <a href="#create_swift_interop_info-swift_infos">swift_infos</a>,
-                          <a href="#create_swift_interop_info-unsupported_features">unsupported_features</a>)
+                          <a href="#create_swift_interop_info-unsupported_features">unsupported_features</a>, <a href="#create_swift_interop_info-system_pcms">system_pcms</a>)
 </pre>
 
 Returns a provider that lets a target expose C/Objective-C APIs to Swift.
@@ -87,6 +87,7 @@ implicit attributes) but also to exclude dependencies if necessary.
 | <a id="create_swift_interop_info-suppressed"></a>suppressed |  A `bool` indicating whether the module that the aspect would create for the target should instead be suppressed.   |  `False` |
 | <a id="create_swift_interop_info-swift_infos"></a>swift_infos |  A list of `SwiftInfo` providers from dependencies, which will be merged with the new `SwiftInfo` created by the aspect.   |  `[]` |
 | <a id="create_swift_interop_info-unsupported_features"></a>unsupported_features |  A list of features (empty by default) that should be considered unsupported for the target, which are added to those supplied as negations in the `features` attribute. This allows the rule implementation to have additional control over features that should be disabled by default for all instances of that rule as if it were creating the feature configuration itself.   |  `[]` |
+| <a id="create_swift_interop_info-system_pcms"></a>system_pcms |  A list of precompiled clang modules with `SwiftInfo` providers for system modules. This is used to define system pcm dependencies passed from `swift_interop_hint`.   |  `[]` |
 
 **RETURNS**
 

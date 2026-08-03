@@ -318,7 +318,7 @@ uses the API marked with `@_spi`.
 ## swift_interop_hint
 
 <pre>
-swift_interop_hint(<a href="#swift_interop_hint-name">name</a>, <a href="#swift_interop_hint-exclude_hdrs">exclude_hdrs</a>, <a href="#swift_interop_hint-module_map">module_map</a>, <a href="#swift_interop_hint-module_name">module_name</a>, <a href="#swift_interop_hint-suppressed">suppressed</a>)
+swift_interop_hint(<a href="#swift_interop_hint-name">name</a>, <a href="#swift_interop_hint-exclude_hdrs">exclude_hdrs</a>, <a href="#swift_interop_hint-module_map">module_map</a>, <a href="#swift_interop_hint-module_name">module_name</a>, <a href="#swift_interop_hint-suppressed">suppressed</a>, <a href="#swift_interop_hint-system_pcms">system_pcms</a>)
 </pre>
 
 Defines an aspect hint that associates non-Swift BUILD targets with additional
@@ -448,6 +448,7 @@ its transitive dependencies be propagated.
 | <a id="swift_interop_hint-module_map"></a>module_map |  An optional custom `.modulemap` file that defines the Clang module for the headers in the target to which this hint is applied.<br><br>If this attribute is omitted, a module map will be automatically generated based on the headers in the hinted target.<br><br>If this attribute is provided, then `module_name` must also be provided and match the name of the desired top-level module in the `.modulemap` file. (A single `.modulemap` file may define multiple top-level modules.)   | <a href="https://bazel.build/concepts/labels">Label</a> | optional |  `None`  |
 | <a id="swift_interop_hint-module_name"></a>module_name |  The name that will be used to import the hinted module into Swift.<br><br>If left unspecified, the module name will be computed based on the hinted target's build label, by stripping the leading `//` and replacing `/`, `:`, and other non-identifier characters with underscores.   | String | optional |  `""`  |
 | <a id="swift_interop_hint-suppressed"></a>suppressed |  If `True`, the hinted target should suppress any module that it would otherwise generate.   | Boolean | optional |  `False`  |
+| <a id="swift_interop_hint-system_pcms"></a>system_pcms |  A list of precompiled clang modules with `SwiftInfo` providers for system modules. This is used to define system pcm dependencies and eventually propagated to swift_interop_info. swift_interop_info will pass those to compile actions.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 
 
 <a id="swift_library"></a>
@@ -457,7 +458,8 @@ its transitive dependencies be propagated.
 <pre>
 swift_library(<a href="#swift_library-name">name</a>, <a href="#swift_library-deps">deps</a>, <a href="#swift_library-srcs">srcs</a>, <a href="#swift_library-data">data</a>, <a href="#swift_library-always_include_developer_search_paths">always_include_developer_search_paths</a>, <a href="#swift_library-alwayslink">alwayslink</a>, <a href="#swift_library-copts">copts</a>,
               <a href="#swift_library-defines">defines</a>, <a href="#swift_library-generated_header_name">generated_header_name</a>, <a href="#swift_library-generates_header">generates_header</a>, <a href="#swift_library-library_evolution">library_evolution</a>, <a href="#swift_library-linkopts">linkopts</a>,
-              <a href="#swift_library-linkstatic">linkstatic</a>, <a href="#swift_library-module_name">module_name</a>, <a href="#swift_library-package_name">package_name</a>, <a href="#swift_library-plugins">plugins</a>, <a href="#swift_library-private_deps">private_deps</a>, <a href="#swift_library-swiftc_inputs">swiftc_inputs</a>)
+              <a href="#swift_library-linkstatic">linkstatic</a>, <a href="#swift_library-module_name">module_name</a>, <a href="#swift_library-package_name">package_name</a>, <a href="#swift_library-plugins">plugins</a>, <a href="#swift_library-private_deps">private_deps</a>, <a href="#swift_library-swiftc_inputs">swiftc_inputs</a>,
+              <a href="#swift_library-system_deps">system_deps</a>)
 </pre>
 
 Compiles and links Swift code into a static library and Swift module.
@@ -485,6 +487,7 @@ Compiles and links Swift code into a static library and Swift module.
 | <a id="swift_library-plugins"></a>plugins |  A list of `swift_compiler_plugin` targets that should be loaded by the compiler when compiling this module and any modules that directly depend on it.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="swift_library-private_deps"></a>private_deps |  A list of targets that are implementation-only dependencies of the target being built. Libraries/linker flags from these dependencies will be propagated to dependent for linking, but artifacts/flags required for compilation (such as .swiftmodule files, C headers, and search paths) will not be propagated.<br><br>Allowed kinds of dependencies are:<br><br>*   `swift_library` (or anything propagating `SwiftInfo`)<br><br>*   `cc_library` and `objc_library` (or anything propagating `CcInfo`)   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
 | <a id="swift_library-swiftc_inputs"></a>swiftc_inputs |  Additional files that are referenced using `$(location ...)` in attributes that support location expansion.   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `[]`  |
+| <a id="swift_library-system_deps"></a>system_deps |  Default and universal system modules necessary for Swift compilation with explicit C modules. It's desired that each swift_library rule target defines its own system module dependencies, however, we are defining a long list of commonly used system modules here just to ease the burden of the developers during the migration to explicit C modules. This attribute should be removed once the explicit c modules are fully adopted and enabled by default.<br><br>Allowed kinds of dependencies are:<br><br>*   `swift_library` (or anything propagating `SwiftInfo`)<br><br>*   `cc_library` and `objc_library` (or anything propagating `CcInfo`)   | <a href="https://bazel.build/concepts/labels">List of labels</a> | optional |  `["@rules_swift//system_sdks"]`  |
 
 
 <a id="swift_library_group"></a>
