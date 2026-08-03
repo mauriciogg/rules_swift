@@ -16,12 +16,12 @@
 
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@build_bazel_rules_swift//swift:providers.bzl", "SwiftInfo", "create_clang_module_inputs", "create_swift_module_context")
-load("@build_bazel_rules_swift//swift:swift_common.bzl", "swift_common")
-load("@build_bazel_rules_swift//swift/internal:compiling.bzl", "precompile_clang_module")
-load("@build_bazel_rules_swift//swift/internal:feature_names.bzl", "SWIFT_FEATURE_SYSTEM_MODULE")
-load("@build_bazel_rules_swift//swift/internal:utils.bzl", "merge_runfiles")
-load("@build_bazel_rules_swift//swift/internal:toolchain_utils.bzl", "SWIFT_TOOLCHAIN_TYPE")
+load("//swift:providers.bzl", "SwiftInfo", "create_clang_module_inputs", "create_swift_module_context")
+load("//swift:swift_common.bzl", "swift_common")
+load("//swift/internal:compiling.bzl", "precompile_clang_module")
+load("//swift/internal:feature_names.bzl", "SWIFT_FEATURE_SYSTEM_MODULE")
+load("//swift/internal:utils.bzl", "merge_runfiles")
+load("//swift/internal:toolchain_utils.bzl", "SWIFT_TOOLCHAIN_TYPE")
 
 def _swift_c_module_impl(ctx):
     if (
@@ -78,7 +78,9 @@ def _swift_c_module_impl(ctx):
         target_name = ctx.attr.name,
         toolchain_type = SWIFT_TOOLCHAIN_TYPE,
     )
-    precompiled_module = getattr(pcm_outputs, "pcm_file", None)
+    precompiled_module = (
+        pcm_outputs.clang_module.precompiled_module if pcm_outputs else None
+    )
 
     clang_module_context = create_clang_module_inputs(
         compilation_context = cc_info.compilation_context,

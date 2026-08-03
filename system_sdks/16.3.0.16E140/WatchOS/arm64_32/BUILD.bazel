@@ -1,5 +1,5 @@
-load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library_group")
-load("@build_bazel_rules_swift//system_sdks:swift_c_module.bzl", "swift_c_module")
+load("//swift:swift.bzl", "swift_library_group")
+load("//system_sdks:swift_c_module.bzl", "swift_c_module")
 
 package(default_visibility = ["//visibility:public"])
 

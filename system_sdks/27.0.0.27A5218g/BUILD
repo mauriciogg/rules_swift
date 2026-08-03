@@ -1,4 +1,4 @@
-load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library_group")
+load("//swift:swift.bzl", "swift_library_group")
 package(default_visibility = ["//visibility:public"])
 
 config_setting(
@@ -14,7 +14,7 @@ config_setting(
     constraint_values = [
         "@platforms//os:ios",
         "@platforms//cpu:arm64",
-        "@build_bazel_apple_support//constraints:device",
+        "@apple_support//constraints:device",
     ],
 )
 
@@ -23,7 +23,7 @@ config_setting(
     constraint_values = [
         "@platforms//os:ios",
         "@platforms//cpu:arm64",
-        "@build_bazel_apple_support//constraints:simulator",
+        "@apple_support//constraints:simulator",
     ],
 )
 
@@ -32,7 +32,7 @@ config_setting(
     constraint_values = [
         "@platforms//os:watchos",
         "@platforms//cpu:arm64",
-        "@build_bazel_apple_support//constraints:simulator",
+        "@apple_support//constraints:simulator",
     ],
 )
 
@@ -41,7 +41,7 @@ config_setting(
     constraint_values = [
         "@platforms//os:watchos",
         "@platforms//cpu:arm64_32",
-        "@build_bazel_apple_support//constraints:device",
+        "@apple_support//constraints:device",
     ],
 )
 
@@ -50,7 +50,7 @@ config_setting(
     constraint_values = [
         "@platforms//os:watchos",
         "@platforms//cpu:arm64",
-        "@build_bazel_apple_support//constraints:device",
+        "@apple_support//constraints:device",
     ],
 )
 
