@@ -156,17 +156,49 @@ int RunHermeticPcm(const std::vector<std::string>& args,
   if (resource_dir.empty()) {
     return 1;
   }
-  if (resource_dir.find(developer_dir) == std::string::npos) {
-    (*stderr_stream) << "error: hermetic-pcm: resource dir '" << resource_dir
-                     << "' does not contain DEVELOPER_DIR '" << developer_dir
-                     << "'\n";
-    return 1;
+
+  // Cross toolchains set an execroot-relative DEVELOPER_DIR while the
+  // captured frontend command carries worker-absolute paths, so rewrite both
+  // spellings; the symlink name is bare and therefore cwd-relative either way.
+  std::string cwd;
+  {
+    std::error_code ec;
+    auto p = std::filesystem::current_path(ec);
+    if (!ec) {
+      cwd = p.string();
+      if (!cwd.empty() && cwd.back() != '/') cwd += '/';
+    }
   }
+  std::string abs_developer_dir;
+  if (!developer_dir.empty() && developer_dir[0] != '/' && !cwd.empty()) {
+    abs_developer_dir = cwd + developer_dir;
+  }
+
   bazel_rules_swift::EnsureDeveloperDirSymlinkFromEnv();
 
   std::string developer_dir_symlink_name =
       bazel_rules_swift::DeveloperDirSymlinkName();
-  ReplaceAll(resource_dir, developer_dir, developer_dir_symlink_name);
+
+  bool resource_dir_in_developer_dir =
+      resource_dir.find(developer_dir) != std::string::npos ||
+      (!abs_developer_dir.empty() &&
+       resource_dir.find(abs_developer_dir) != std::string::npos);
+  if (resource_dir_in_developer_dir) {
+    if (!abs_developer_dir.empty()) {
+      ReplaceAll(resource_dir, abs_developer_dir, developer_dir_symlink_name);
+    }
+    ReplaceAll(resource_dir, developer_dir, developer_dir_symlink_name);
+  } else {
+    // Standalone (cross) swift distribution outside the Xcode-shaped
+    // DEVELOPER_DIR: the dist's resource dir carries the linux corelibs
+    // overlays (os/object.h, Dispatch, ...) that shadow the Apple SDK's
+    // headers during the module compile. Point the frontend at the Apple
+    // toolchain's swift resource dir instead -- the layout the proven
+    // in-toolchain swiftc had -- which is also execroot-relative via the
+    // developer-dir symlink, so the pcm stays worker-portable.
+    resource_dir = developer_dir_symlink_name +
+                   "/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift";
+  }
 
   std::vector<std::string> rewritten;
   rewritten.reserve(frontend.size() + 2);
@@ -177,7 +209,16 @@ int RunHermeticPcm(const std::vector<std::string>& args,
       continue;
     }
     std::string rewritten_arg = arg;
+    if (!abs_developer_dir.empty()) {
+      ReplaceAll(rewritten_arg, abs_developer_dir, developer_dir_symlink_name);
+    }
     ReplaceAll(rewritten_arg, developer_dir, developer_dir_symlink_name);
+    if (!cwd.empty()) {
+      // The driver absolutizes paths during the -### capture; strip the
+      // execroot prefix everywhere so the pcm never embeds worker-local
+      // paths (remote worker slots differ between producer and consumer).
+      ReplaceAll(rewritten_arg, cwd, "");
+    }
     rewritten.push_back(std::move(rewritten_arg));
   }
 
