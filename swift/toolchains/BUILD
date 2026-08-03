@@ -80,12 +80,9 @@ xcode_swift_toolchain(
 
 xcode_swift_toolchain(
     name = "xcode-toolchain",
-    cross_import_overlays = ["@system_sdk//:all_cross_import_overlays"],
     features = _XCODE_FEATURE_VALUES,
     # SNAP internal: set via `--repo_env=GeneratedHeaderRewriter=...`.
     generated_header_rewriter = GENERATED_HEADER_REWRITER,
-    implicit_system_modules = "@system_sdk//:implicit_modules",
-    system_modules = "@system_sdk//:all_modules",
     tags = ["manual"],
 )
 

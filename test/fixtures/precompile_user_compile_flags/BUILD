@@ -2,7 +2,7 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//swift:swift_binary.bzl", "swift_binary")
 load("//swift:swift_interop_hint.bzl", "swift_interop_hint")
 load("//test:transitions.bzl", "transition_binary")
-load("//test/fixtures:common.bzl", "FIXTURE_TAGS")
+load("//test/fixtures:common.bzl", "FIXTURE_TAGS", "REQUIRES_TOOLCHAIN_SYSTEM_MODULES")
 
 package(default_visibility = ["//test:__subpackages__"])
 
@@ -34,6 +34,7 @@ swift_binary(
     name = "user",
     srcs = ["main.swift"],
     tags = FIXTURE_TAGS,
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
     deps = [":Defines"],
 )
 

@@ -1,6 +1,7 @@
 """Tests for the default precompiled-modules injection."""
 
 load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("//test/fixtures:common.bzl", "REQUIRES_TOOLCHAIN_SYSTEM_MODULES")
 load(
     "//test/fixtures/precompiled_modules:cross_platform.bzl",
     "CROSS_PLATFORM_TARGETS",
@@ -65,10 +66,7 @@ def precompiled_modules_test_suite(name, tags = []):
         name = "{}_default_precompiled_modules_test".format(name),
         tags = all_tags,
         mnemonic = "SwiftCompile",
-        target_compatible_with = select({
-            "//test:apple_build_tests_enabled": [],
-            "//conditions:default": ["@platforms//:incompatible"],
-        }),
+        target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
         target_under_test = "//test/fixtures/precompiled_modules:hello",
         expected_argv = [
             "-Xfrontend -explicit-swift-module-map-file -Xfrontend $(BIN_DIR)/test/fixtures/precompiled_modules/hello.swift-system-explicit-module-map.json",
@@ -83,10 +81,7 @@ def precompiled_modules_test_suite(name, tags = []):
         name = "{}_no_default_precompiled_modules_test".format(name),
         tags = all_tags,
         mnemonic = "SwiftCompile",
-        target_compatible_with = select({
-            "@apple_support//configs:apple": [],
-            "//conditions:default": ["@platforms//:incompatible"],
-        }),
+        target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
         target_under_test = "//test/fixtures/precompiled_modules:hello",
         expected_argv = [
             "-Xfrontend -explicit-swift-module-map-file -Xfrontend $(BIN_DIR)/test/fixtures/precompiled_modules/hello.swift-system-explicit-module-map.json",
@@ -148,6 +143,7 @@ def precompiled_modules_test_suite(name, tags = []):
         name = "{}_cross_import_overlay_dep_pollution_no_default_precompiled_modules_test".format(name),
         tags = all_tags,
         mnemonic = "SwiftCompile",
+        target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
         target_under_test = "//test/fixtures/precompiled_modules:cross_import_overlay_dep_pollution",
         expected_argv = [
             "-Xfrontend -disable-cross-import-overlay-search",
@@ -159,6 +155,7 @@ def precompiled_modules_test_suite(name, tags = []):
         name = "{}_cross_import_overlay_dep_pollution_default_precompiled_modules_test".format(name),
         tags = all_tags,
         mnemonic = "SwiftCompile",
+        target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
         target_under_test = "//test/fixtures/precompiled_modules:cross_import_overlay_dep_pollution",
         expected_argv = [
             "-Xfrontend -disable-cross-import-overlay-search",
@@ -177,10 +174,7 @@ def precompiled_modules_test_suite(name, tags = []):
             "-Xfrontend -swift-module-cross-import -Xfrontend Testing -Xfrontend",
             "Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay",
         ],
-        target_compatible_with = select({
-            ":has_testing_appkit_overlay": [],
-            "//conditions:default": ["@platforms//:incompatible"],
-        }),
+        target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
     )
 
     build_test(

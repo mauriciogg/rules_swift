@@ -3,7 +3,7 @@ load("//swift:swift_interop_hint.bzl", "swift_interop_hint")
 load("//swift:swift_library.bzl", "swift_library")
 load("//swift:swift_overlay.bzl", "swift_overlay")
 load("//test:transitions.bzl", "transition_binary")
-load("//test/fixtures:common.bzl", "FIXTURE_TAGS")
+load("//test/fixtures:common.bzl", "FIXTURE_TAGS", "REQUIRES_TOOLCHAIN_SYSTEM_MODULES")
 
 package(
     default_visibility = ["//test:__subpackages__"],
@@ -47,6 +47,7 @@ swift_library(
     srcs = ["FoundationConsumer.swift"],
     module_name = "FoundationConsumer",
     tags = FIXTURE_TAGS,
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 transition_binary(

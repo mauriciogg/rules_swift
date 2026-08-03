@@ -11,7 +11,7 @@ load(
     "transition_binary",
     "transition_test",
 )
-load("//test/fixtures:common.bzl", "FIXTURE_TAGS")
+load("//test/fixtures:common.bzl", "FIXTURE_TAGS", "REQUIRES_TOOLCHAIN_SYSTEM_MODULES")
 load("//test/rules:swift_verify_test.bzl", "swift_verify_test")
 load(":cross_platform.bzl", "cross_platform_targets")
 
@@ -120,6 +120,7 @@ swift_compiler_plugin(
     srcs = ["StubPlugin.swift"],
     module_name = "StubPlugin",
     tags = FIXTURE_TAGS,
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 swift_binary(
@@ -179,6 +180,7 @@ swift_test(
     srcs = ["XCTestWithTesting.swift"],
     discover_tests = False,
     tags = FIXTURE_TAGS,
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 transition_test(
@@ -284,10 +286,7 @@ swift_binary(
     name = "c_module_imports",
     srcs = ["c_module_imports.swift"],
     tags = FIXTURE_TAGS,
-    target_compatible_with = select({
-        "@apple_support//configs:apple": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 transition_binary(
@@ -309,10 +308,7 @@ mixed_language_library(
     module_name = "MixedGreeter",
     swift_srcs = ["MixedGreeter.swift"],
     tags = FIXTURE_TAGS,
-    target_compatible_with = select({
-        "@apple_support//configs:apple": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 swift_binary(
@@ -448,7 +444,7 @@ swift_import(
     module_name = "LowerVersionLib",
     swiftinterface = "LowerVersionLib.swiftinterface",  # NOTE: The macOS version in this file _must_ not be the same one we use globally, that is the behavior we're testing
     tags = FIXTURE_TAGS,
-    target_compatible_with = ["@platforms//os:macos"],
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 swift_binary(
@@ -632,6 +628,7 @@ swift_binary(
     name = "avfoundation_import",
     srcs = ["avfoundation_import.swift"],
     tags = FIXTURE_TAGS,
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
     deps = [
         "@system_sdk//:AVFoundation",
         "@system_sdk//:Foundation",

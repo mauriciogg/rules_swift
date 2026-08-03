@@ -5,6 +5,7 @@ load("//swift:swift_compiler_plugin.bzl", "swift_compiler_plugin")
 load("//swift:swift_interop_hint.bzl", "swift_interop_hint")
 load("//swift:swift_library.bzl", "swift_library")
 load("//test:transitions.bzl", "transition_binary")
+load("//test/fixtures:common.bzl", "REQUIRES_TOOLCHAIN_SYSTEM_MODULES")
 load(":extract_pcm.bzl", "extract_pcm")
 load(":extract_swiftmodule.bzl", "extract_swiftmodule")
 load(":xcode_version_at_least.bzl", "xcode_version_at_least")
@@ -103,10 +104,7 @@ swift_library(
     name = "Downstream",
     srcs = ["Downstream.swift"],
     module_name = "Downstream",
-    target_compatible_with = select({
-        "@apple_support//configs:apple": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
     deps = ["@system_sdk//:Foundation"],
 )
 
@@ -148,10 +146,7 @@ sh_test(
 extract_swiftmodule(
     name = "testing_swiftmodule",
     target = "@system_sdk//:Testing",
-    target_compatible_with = select({
-        ":supports_hermetic_swiftmodule": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 # Direct system Swift modules should not embed absolute Xcode paths either,
@@ -183,7 +178,7 @@ system_swiftinterface(
         "@system_sdk//:_SwiftConcurrencyShims",
     ],
     swiftinterface = "//test/fixtures/precompiled_modules:LowerVersionLib.swiftinterface",
-    target_compatible_with = ["@platforms//os:macos"],
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
 )
 
 extract_swiftmodule(
@@ -224,10 +219,7 @@ swift_library(
     srcs = ["DownstreamWithPlugin.swift"],
     module_name = "DownstreamWithPlugin",
     plugins = [":noop_plugin"],
-    target_compatible_with = select({
-        "@apple_support//configs:apple": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = REQUIRES_TOOLCHAIN_SYSTEM_MODULES,
     deps = ["@system_sdk//:Foundation"],
 )
 

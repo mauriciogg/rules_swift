@@ -24,6 +24,15 @@ FIXTURE_TAGS = [
     "notap",
 ]
 
+# This fork's toolchains do not inject a precompiled system module layer: the
+# @system_sdk repo is dropped, and consumers instead supply system modules per
+# target (swift_interop_hint.system_pcms / swift_library.system_deps). Fixtures
+# that enable explicit C modules and expect the system modules to be present
+# implicitly therefore cannot build here. They are marked incompatible rather
+# than deleted so the affected set stays obvious if the toolchain layer ever
+# comes back.
+REQUIRES_TOOLCHAIN_SYSTEM_MODULES = ["@platforms//os:none"]
+
 def _forward_swift_info_from_swift_clang_module_aspect_impl(ctx):
     if SwiftInfo in ctx.attr.target:
         return [ctx.attr.target[SwiftInfo]]

@@ -184,7 +184,10 @@ http_archive(
     urls = ["https://github.com/MobileNativeFoundation/index-import/releases/download/6.1.0.1/index-import.tar.gz"],
 )
 
-system_sdk = use_extension("//swift:extensions.bzl", "system_sdk")
+# Dev-only: the hub repo feeds this repo's own hermetic_pcm tests. Consumers
+# bring their own system-modules layer (or none); the toolchains no longer
+# inject @system_sdk.
+system_sdk = use_extension("//swift:extensions.bzl", "system_sdk", dev_dependency = True)
 system_sdk.configure_sdks(
     # NOTE: This doesn't apply to downstream repos
     exclude_modules = {
